@@ -1,53 +1,45 @@
 #include "PowerBar.hpp"
-#include "GameConfig.hpp"
+#include <algorithm>
 
-PowerBar::PowerBar() {
-    background.setSize(sf::Vector2f(100.0f, 14.0f));
+PowerBar::PowerBar(float x, float y, float width, float height, float maxPower)
+    : maxPower(maxPower), currentPower(0.f) {
+    background.setPosition(x, y);
+    background.setSize(sf::Vector2f(width, height));
     background.setFillColor(sf::Color(40, 40, 40));
-    background.setOutlineThickness(1.0f);
+    background.setOutlineThickness(2.f);
     background.setOutlineColor(sf::Color::White);
 
-    powerBar.setSize(sf::Vector2f(0.0f, 10.0f));
+    fill.setPosition(x, y);
+    fill.setSize(sf::Vector2f(0.f, height));
+    fill.setFillColor(sf::Color::Green);
 }
 
-void PowerBar::draw(
-    sf::RenderWindow& window,
-    sf::Vector2f ballPosition,
-    float power
-) {
-    float x = ballPosition.x + 25.0f;
-    float y = ballPosition.y - 35.0f;
+void PowerBar::setPower(float power) {
+    currentPower = std::clamp(power, 0.f, maxPower);
+    float ratio = currentPower / maxPower;
+    fill.setSize(sf::Vector2f(background.getSize().x * ratio, background.getSize().y));
 
-    if (x + 100.0f > TABLE_RIGHT) {
-        x = ballPosition.x - 125.0f;
+    // Gradasi warna indikator kekuatan (Hijau -> Kuning -> Merah)
+    if (ratio < 0.5f) {
+        fill.setFillColor(sf::Color::Green);
     }
-
-    if (y < TABLE_TOP) {
-        y = ballPosition.y + 25.0f;
-    }
-
-    sf::Vector2f position(x, y);
-
-    background.setPosition(position);
-    powerBar.setPosition(
-        position.x + 2.0f,
-        position.y + 2.0f
-    );
-
-    powerBar.setSize(
-        sf::Vector2f(power * 0.96f, 10.0f)
-    );
-
-    if (power < 40.0f) {
-        powerBar.setFillColor(sf::Color(70, 200, 90));
-    }
-    else if (power < 70.0f) {
-        powerBar.setFillColor(sf::Color(230, 190, 50));
+    else if (ratio < 0.8f) {
+        fill.setFillColor(sf::Color::Yellow);
     }
     else {
-        powerBar.setFillColor(sf::Color(220, 60, 50));
+        fill.setFillColor(sf::Color::Red);
     }
+}
 
+float PowerBar::getPower() const { return currentPower; }
+float PowerBar::getMaxPower() const { return maxPower; }
+
+void PowerBar::reset() {
+    currentPower = 0.f;
+    fill.setSize(sf::Vector2f(0.f, background.getSize().y));
+}
+
+void PowerBar::draw(sf::RenderWindow& window) {
     window.draw(background);
-    window.draw(powerBar);
+    window.draw(fill);
 }

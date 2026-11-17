@@ -1,237 +1,132 @@
 #include <SFML/Graphics.hpp>
-#include <cmath>
-#include "GameConfig.hpp"
+#include <vector>
 #include "BilliardBall.hpp"
 #include "CueStick.hpp"
 #include "PowerBar.hpp"
 
 int main() {
-    sf::RenderWindow window(
-        sf::VideoMode(
-            static_cast<unsigned int>(TABLE_WIDTH),
-            static_cast<unsigned int>(TABLE_HEIGHT)
-        ),
-        "Simulasi Billiard"
-    );
-
+    const unsigned int WINDOW_WIDTH = 1000;
+    const unsigned int WINDOW_HEIGHT = 600;
+    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Simulasi Permainan Billiard - Kelompok 6");
     window.setFramerateLimit(60);
 
-    sf::RectangleShape woodFrame(
-        sf::Vector2f(770.0f, 470.0f)
-    );
+    // 1. Setup Meja & Dinding (Aktivitas 4)
+    sf::FloatRect tableBounds(100.f, 80.f, 800.f, 420.f);
+    float cushionThickness = 25.f;
 
-    woodFrame.setPosition(15.0f, 15.0f);
-    woodFrame.setFillColor(sf::Color(110, 65, 35));
-    woodFrame.setOutlineThickness(3.0f);
-    woodFrame.setOutlineColor(sf::Color(65, 38, 20));
+    sf::RectangleShape woodFrame(sf::Vector2f(tableBounds.width + cushionThickness * 2, tableBounds.height + cushionThickness * 2));
+    woodFrame.setPosition(tableBounds.left - cushionThickness, tableBounds.top - cushionThickness);
+    woodFrame.setFillColor(sf::Color(101, 67, 33));
 
-    sf::RectangleShape rail(
-        sf::Vector2f(730.0f, 430.0f)
-    );
+    sf::RectangleShape feltSurface(sf::Vector2f(tableBounds.width, tableBounds.height));
+    feltSurface.setPosition(tableBounds.left, tableBounds.top);
+    feltSurface.setFillColor(sf::Color(20, 110, 55));
 
-    rail.setPosition(35.0f, 35.0f);
-    rail.setFillColor(sf::Color(25, 75, 40));
+    // 2. Setup 6 Lubang Meja
+    float pocketRadius = 22.f;
+    std::vector<sf::Vector2f> pocketPositions = {
+        {tableBounds.left, tableBounds.top},
+        {tableBounds.left + tableBounds.width / 2.f, tableBounds.top - 4.f},
+        {tableBounds.left + tableBounds.width, tableBounds.top},
+        {tableBounds.left, tableBounds.top + tableBounds.height},
+        {tableBounds.left + tableBounds.width / 2.f, tableBounds.top + tableBounds.height + 4.f},
+        {tableBounds.left + tableBounds.width, tableBounds.top + tableBounds.height}
+    };
 
-    sf::RectangleShape table(
-        sf::Vector2f(690.0f, 390.0f)
-    );
+    std::vector<sf::CircleShape> pocketShapes;
+    for (const auto& pos : pocketPositions) {
+        sf::CircleShape pocket(pocketRadius);
+        pocket.setOrigin(pocketRadius, pocketRadius);
+        pocket.setPosition(pos);
+        pocket.setFillColor(sf::Color(15, 15, 15));
+        pocketShapes.push_back(pocket);
+    }
 
-    table.setPosition(TABLE_LEFT, TABLE_TOP);
-    table.setFillColor(sf::Color(35, 110, 60));
-    table.setOutlineThickness(2.0f);
-    table.setOutlineColor(sf::Color(20, 65, 35));
+    // 3. Setup Bola Putih dan Formasi Segitiga Bola Target (Aktivitas 5)
+    float ballRadius = 13.f;
+    std::vector<BilliardBall> balls;
 
-    BilliardBall ball(
-        BALL_RADIUS,
-        sf::Vector2f(400.0f, 250.0f),
-        sf::Color::White
-    );
+    balls.emplace_back(tableBounds.left + 200.f, tableBounds.top + tableBounds.height / 2.f, ballRadius, sf::Color::White, true);
 
-    CueStick cue(150.0f, 7.0f);
-    PowerBar powerBar;
+    std::vector<sf::Color> targetColors = {
+        sf::Color::Yellow, sf::Color::Blue, sf::Color::Red, sf::Color::Magenta, sf::Color(255, 140, 0),
+        sf::Color::Green, sf::Color(128, 0, 0), sf::Color::Black, sf::Color::Yellow, sf::Color::Blue,
+        sf::Color::Red, sf::Color::Magenta, sf::Color(255, 140, 0), sf::Color::Green, sf::Color(128, 0, 0)
+    };
+
+    float startX = tableBounds.left + 540.f;
+    float startY = tableBounds.top + tableBounds.height / 2.f;
+    float spacingX = ballRadius * 1.78f;
+    float spacingY = ballRadius * 2.05f;
+    int colorIdx = 0;
+
+    for (int col = 0; col < 5; ++col) {
+        for (int row = 0; row <= col; ++row) {
+            float x = startX + col * spacingX;
+            float y = startY - (col * spacingY * 0.5f) + (row * spacingY);
+            balls.emplace_back(x, y, ballRadius, targetColors[colorIdx % targetColors.size()], false);
+            colorIdx++;
+        }
+    }
+
+    // 4. Setup Tongkat dan Indikator Kekuatan (Aktivitas 6)
+    CueStick cueStick;
+    PowerBar powerBar(100.f, 540.f, 250.f, 22.f, 1300.f);
 
     sf::Clock clock;
 
-    bool charging = false;
-    bool striking = false;
-    bool ballHit = false;
-    bool powerIncreasing = true;
-
-    float power = 0.0f;
-    float pullBack = 0.0f;
-
-    float strikeTimer = 0.0f;
-    float strikeDuration = 0.2f;
-
-    sf::Vector2f direction(1.0f, 0.0f);
-    sf::Vector2f shotDirection(1.0f, 0.0f);
-    sf::Vector2f shotStartPosition(400.0f, 250.0f);
-
     while (window.isOpen()) {
-        sf::Event event;
+        float dt = clock.restart().asSeconds();
+        if (dt > 0.05f) dt = 0.05f;
 
+        sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
+            cueStick.handleEvent(event, balls[0], powerBar);
+        }
 
-            if (event.type == sf::Event::MouseButtonPressed) {
-                if (event.mouseButton.button == sf::Mouse::Left &&
-                    !ball.isMoving() &&
-                    !striking) {
+        // Update Fisika Gerak dan Tumbukan (Aktivitas 7)
+        bool anyBallMoving = false;
+        const float TABLE_FRICTION = 0.985f;
 
-                    charging = true;
-                    power = 0.0f;
-                    powerIncreasing = true;
-                    pullBack = 0.0f;
-                }
+        for (size_t i = 0; i < balls.size(); ++i) {
+            balls[i].update(dt, TABLE_FRICTION);
+            balls[i].checkWallCollision(tableBounds);
+            balls[i].checkPocketCollision(pocketPositions, pocketRadius);
 
-                if (event.mouseButton.button == sf::Mouse::Right &&
-                    charging) {
-
-                    charging = false;
-                    power = 0.0f;
-                    powerIncreasing = true;
-                    pullBack = 0.0f;
-                }
-            }
-
-            if (event.type == sf::Event::MouseButtonReleased) {
-                if (event.mouseButton.button == sf::Mouse::Left &&
-                    charging) {
-
-                    charging = false;
-                    striking = true;
-                    ballHit = false;
-
-                    strikeTimer = 0.0f;
-
-                    shotDirection = direction;
-                    shotStartPosition = ball.getPosition();
-
-                    pullBack = power * 0.4f;
-                }
+            if (balls[i].isMoving()) {
+                anyBallMoving = true;
             }
         }
 
-        float deltaTime = clock.restart().asSeconds();
-
-        if (deltaTime > 0.05f) {
-            deltaTime = 0.05f;
-        }
-
-        sf::Vector2i mousePosition =
-            sf::Mouse::getPosition(window);
-
-        sf::Vector2f mouse(
-            static_cast<float>(mousePosition.x),
-            static_cast<float>(mousePosition.y)
-        );
-
-        sf::Vector2f ballPosition = ball.getPosition();
-
-        if (!ball.isMoving() && !striking) {
-            sf::Vector2f directionVector = ballPosition - mouse;
-
-            float distance = std::sqrt(
-                directionVector.x * directionVector.x +
-                directionVector.y * directionVector.y
-            );
-
-            if (distance > 0.0f) {
-                direction = directionVector / distance;
+        // Cek tumbukan antar semua pasangan bola
+        for (size_t i = 0; i < balls.size(); ++i) {
+            for (size_t j = i + 1; j < balls.size(); ++j) {
+                balls[i].checkBallCollision(balls[j]);
             }
         }
 
-        if (charging) {
-            if (powerIncreasing) {
-                power += 60.0f * deltaTime;
+        // Update Tongkat berdasarkan posisi mouse
+        sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+        cueStick.update(dt, mousePos, balls[0], powerBar, anyBallMoving);
 
-                if (power >= 100.0f) {
-                    power = 100.0f;
-                    powerIncreasing = false;
-                }
-            }
-            else {
-                power -= 60.0f * deltaTime;
-
-                if (power <= 0.0f) {
-                    power = 0.0f;
-                    powerIncreasing = true;
-                }
-            }
-
-            pullBack = power * 0.4f;
-        }
-
-        if (striking) {
-            strikeTimer += deltaTime;
-
-            float progress = strikeTimer / strikeDuration;
-
-            if (progress < 0.5f) {
-                float t = progress / 0.5f;
-                pullBack = power * 0.4f * (1.0f - t);
-            }
-            else {
-                pullBack = 0.0f;
-
-                if (!ballHit) {
-                    ball.hit(shotDirection, power);
-                    ballHit = true;
-                }
-            }
-
-            if (progress >= 1.0f) {
-                striking = false;
-                power = 0.0f;
-                powerIncreasing = true;
-                pullBack = 0.0f;
-            }
-        }
-
-        if (striking) {
-            cue.update(
-                shotStartPosition,
-                shotDirection,
-                pullBack
-            );
-        }
-        else if (!ball.isMoving()) {
-            cue.update(
-                ball.getPosition(),
-                direction,
-                pullBack
-            );
-        }
-
-        ball.update(
-            deltaTime,
-            BALL_LEFT,
-            BALL_RIGHT,
-            BALL_TOP,
-            BALL_BOTTOM
-        );
-
-        window.clear(sf::Color(35, 25, 18));
-
+        // Render seluruh objek
+        window.clear(sf::Color(30, 32, 36));
         window.draw(woodFrame);
-        window.draw(rail);
-        window.draw(table);
+        window.draw(feltSurface);
 
-        if (!ball.isMoving() || striking) {
-            cue.draw(window);
+        for (const auto& pocket : pocketShapes) {
+            window.draw(pocket);
         }
 
-        ball.draw(window);
-
-        if ((charging || striking) && !ball.isMoving()) {
-            powerBar.draw(
-                window,
-                ball.getPosition(),
-                power
-            );
+        for (auto& ball : balls) {
+            ball.draw(window);
         }
+
+        cueStick.draw(window);
+        powerBar.draw(window);
 
         window.display();
     }
