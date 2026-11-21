@@ -3,9 +3,9 @@
 
 MenuScene::MenuScene(AssetManager& assets)
     : Scene(assets),
-    title("BILLIARD", assets.font(), 64),
-    startButton(assets.font(), "START", sf::Vector2f(400.f, 250.f), sf::Vector2f(200.f, 60.f)),
-    exitButton(assets.font(), "EXIT", sf::Vector2f(400.f, 340.f), sf::Vector2f(200.f, 60.f)) {
+    title("BILLIARD", assets.boldFont(), 64),
+    startButton(assets.font(), "START", sf::Vector2f(WINDOW_WIDTH / 2.f - 100.f, 250.f), sf::Vector2f(200.f, 60.f)),
+    exitButton(assets.font(), "EXIT", sf::Vector2f(WINDOW_WIDTH / 2.f - 100.f, 340.f), sf::Vector2f(200.f, 60.f)) {
     sf::FloatRect b = title.getLocalBounds();
     title.setOrigin(b.left + b.width / 2.f, b.top + b.height / 2.f);
     title.setPosition(WINDOW_WIDTH / 2.f, 150.f);

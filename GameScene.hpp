@@ -31,6 +31,7 @@ private:
     void endGame(int winner);
     void switchTurn();
     bool canPlaceCueAt(sf::Vector2f pos) const;
+    bool isSpotFree(sf::Vector2f pos, const Ball* ignore) const;
     bool isLegalFirstContact() const;
     int countRemaining(BallGroup group) const;
     bool anyBallMoving() const;

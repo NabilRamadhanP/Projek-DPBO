@@ -7,6 +7,8 @@ AssetManager::AssetManager() : soundPool(12) {
         loadTexture("ball_" + std::to_string(i), PATH_BALL + std::to_string(i) + ".png");
     }
     loadTexture("triangle", PATH_TRIANGLE);
+    loadTexture("player_1", PATH_PLAYER + "1.png");
+    loadTexture("player_2", PATH_PLAYER + "2.png");
 
     loadSound("cue_hit", PATH_SOUND + "cue_hit.wav");
     loadSound("wall_hit", PATH_SOUND + "wall_hit.wav");
@@ -16,6 +18,9 @@ AssetManager::AssetManager() : soundPool(12) {
     if (!mainFont.loadFromFile(PATH_FONT)) {
         std::cerr << "Font gagal dimuat: " << PATH_FONT << "\n";
     }
+    if (!strongFont.loadFromFile(PATH_FONT_BOLD)) {
+        std::cerr << "Font gagal dimuat: " << PATH_FONT_BOLD << "\n";
+    }
 }
 
 const sf::Texture& AssetManager::texture(const std::string& name) const {
@@ -24,6 +29,10 @@ const sf::Texture& AssetManager::texture(const std::string& name) const {
 
 const sf::Font& AssetManager::font() const {
     return mainFont;
+}
+
+const sf::Font& AssetManager::boldFont() const {
+    return strongFont;
 }
 
 void AssetManager::playSound(const std::string& name) {

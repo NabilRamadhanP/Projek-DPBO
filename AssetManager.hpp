@@ -11,6 +11,7 @@ public:
 
     const sf::Texture& texture(const std::string& name) const;
     const sf::Font& font() const;
+    const sf::Font& boldFont() const;
     void playSound(const std::string& name);
 
 private:
@@ -21,4 +22,5 @@ private:
     std::map<std::string, sf::SoundBuffer> buffers;
     std::vector<sf::Sound> soundPool;
     sf::Font mainFont;
+    sf::Font strongFont;
 };

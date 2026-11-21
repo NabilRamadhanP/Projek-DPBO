@@ -1,14 +1,33 @@
 #include "GameScene.hpp"
+#include <algorithm>
 #include <cmath>
 #include <string>
 
 namespace {
+    const sf::Color ACTIVE_COLOR(255, 225, 60);
+    const sf::Color INACTIVE_COLOR(150, 150, 150);
+
     void drawText(sf::RenderWindow& window, const sf::Font& font, const std::string& text,
         sf::Vector2f pos, unsigned int size, sf::Color color) {
         sf::Text t(text, font, size);
         t.setPosition(pos);
         t.setFillColor(color);
         window.draw(t);
+    }
+
+    void drawCentered(sf::RenderWindow& window, const sf::Font& font, const std::string& text,
+        float cx, float cy, unsigned int size, sf::Color color) {
+        sf::Text t(text, font, size);
+        sf::FloatRect b = t.getLocalBounds();
+        t.setOrigin(b.left + b.width / 2.f, b.top + b.height / 2.f);
+        t.setPosition(cx, cy);
+        t.setFillColor(color);
+        window.draw(t);
+    }
+
+    float panelCenter(bool right) {
+        if (right) return (WINDOW_WIDTH + TABLE_BOUNDS.left + TABLE_BOUNDS.width + CUSHION) / 2.f;
+        return (TABLE_BOUNDS.left - CUSHION) / 2.f;
     }
 
     std::string groupName(BallGroup g) {
@@ -20,7 +39,7 @@ namespace {
 
 GameScene::GameScene(AssetManager& assets)
     : Scene(assets), cue(nullptr),
-    powerBar(sf::Vector2f(100.f, 540.f), sf::Vector2f(250.f, 22.f)),
+    powerBar(sf::Vector2f(200.f, 562.f), sf::Vector2f(250.f, 22.f)),
     rack(assets.texture("triangle")),
     players{ Player("Pemain 1"), Player("Pemain 2") },
     currentPlayer(0), state(TurnState::Racking), breakShot(true), charging(false),
@@ -264,6 +283,11 @@ void GameScene::finishShot() {
 
     if (!foul && shooter.getGroup() == BallGroup::None && !pocketedThisShot.empty()) {
         BallGroup g = pocketedThisShot.front()->getGroup();
+        if (auto* hit = dynamic_cast<ObjectBall*>(firstHit)) {
+            for (ObjectBall* b : pocketedThisShot) {
+                if (b->getGroup() == hit->getGroup()) g = hit->getGroup();
+            }
+        }
         shooter.setGroup(g);
         opponent.setGroup(g == BallGroup::Solid ? BallGroup::Stripe : BallGroup::Solid);
     }
@@ -271,9 +295,9 @@ void GameScene::finishShot() {
     bool legalPocket = false;
     for (ObjectBall* b : pocketedThisShot) {
         for (Player& p : players) {
-            if (p.getGroup() == b->getGroup()) p.addScore();
+            if (p.getGroup() == b->getGroup()) p.addBall(b->getNumber());
         }
-        if (b->getGroup() == shooter.getGroup()) legalPocket = true;
+        if (!foul && b->getGroup() == shooter.getGroup()) legalPocket = true;
     }
 
     if (foul) {
@@ -302,11 +326,15 @@ void GameScene::switchTurn() {
 }
 
 bool GameScene::canPlaceCueAt(sf::Vector2f pos) const {
-    if (!table.isInside(pos, BALL_RADIUS)) return false;
     if (breakShot && pos.x > table.headStringX()) return false;
+    return isSpotFree(pos, cue);
+}
+
+bool GameScene::isSpotFree(sf::Vector2f pos, const Ball* ignore) const {
+    if (!table.isInside(pos, BALL_RADIUS)) return false;
 
     for (const auto& b : balls) {
-        if (b.get() == cue || !b->isOnTable()) continue;
+        if (b.get() == ignore || !b->isOnTable()) continue;
         sf::Vector2f d = b->getPosition() - pos;
         if (std::hypot(d.x, d.y) < 2.f * BALL_RADIUS) return false;
     }
@@ -324,29 +352,68 @@ void GameScene::draw(sf::RenderWindow& window) {
 
 void GameScene::drawHUD(sf::RenderWindow& window) const {
     const sf::Font& font = assets.font();
+    const sf::Font& bold = assets.boldFont();
 
     for (int i = 0; i < 2; ++i) {
-        std::string info = players[i].getName() + " [" + groupName(players[i].getGroup()) +
-            "] : " + std::to_string(players[i].getScore());
-        sf::Color color = (i == currentPlayer) ? sf::Color::Yellow : sf::Color::White;
-        drawText(window, font, info, sf::Vector2f(20.f + 480.f * i, 12.f), 18, color);
+        const Player& p = players[i];
+        bool active = (i == currentPlayer);
+        float cx = panelCenter(i == 1);
+        sf::Color accent = active ? ACTIVE_COLOR : INACTIVE_COLOR;
+
+        drawCentered(window, bold, "SCORE " + std::to_string(p.getScore()), cx, 120.f, 32, accent);
+
+        sf::RectangleShape line(sf::Vector2f(130.f, 3.f));
+        line.setOrigin(65.f, 1.5f);
+        line.setPosition(cx, 180.f);
+        line.setFillColor(accent);
+        window.draw(line);
+
+        const std::vector<int>& nums = p.getBalls();
+        int count = static_cast<int>(nums.size());
+        for (int k = 0; k < count; ++k) {
+            int row = k / 4;
+            int col = k % 4;
+            int inRow = std::min(4, count - row * 4);
+            float x = cx + (col - (inRow - 1) / 2.f) * 30.f;
+            float y = 217.f + row * 30.f;
+
+            const sf::Texture& tex = assets.texture("ball_" + std::to_string(nums[k]));
+            sf::Sprite s(tex);
+            float scale = 24.f / tex.getSize().x;
+            s.setOrigin(tex.getSize().x / 2.f, tex.getSize().y / 2.f);
+            s.setPosition(x, y);
+            s.setScale(scale, scale);
+            window.draw(s);
+        }
+
+        drawCentered(window, bold, p.getName(), cx, 290.f, 24, accent);
+        drawCentered(window, font, "[" + groupName(p.getGroup()) + "]", cx, 322.f, 16, accent);
+
+        const sf::Texture& avTex = assets.texture(i == 0 ? "player_1" : "player_2");
+        sf::Sprite avatar(avTex);
+        float avScale = 120.f / avTex.getSize().x;
+        avatar.setOrigin(avTex.getSize().x / 2.f, avTex.getSize().y / 2.f);
+        avatar.setPosition(cx, 430.f);
+        avatar.setScale(avScale, avScale);
+        avatar.setColor(active ? sf::Color::White : sf::Color(110, 110, 110));
+        window.draw(avatar);
     }
 
     if (charging) {
         int percent = static_cast<int>(powerBar.getRatio() * 100.f);
         drawText(window, font, "POWER " + std::to_string(percent) + "%",
-            sf::Vector2f(100.f, 510.f), 18, sf::Color::White);
+            sf::Vector2f(200.f, 532.f), 18, sf::Color::White);
     }
     else if (state == TurnState::Aiming) {
         drawText(window, font, "Tahan klik kiri: power | Lepas: pukul | Klik kanan: batal",
-            sf::Vector2f(100.f, 510.f), 16, sf::Color(200, 200, 200));
+            sf::Vector2f(200.f, 532.f), 16, sf::Color(200, 200, 200));
     }
 
     if (state == TurnState::GameOver) {
-        drawText(window, font, message + "   (R = main lagi, ESC = menu)",
-            sf::Vector2f(180.f, 260.f), 26, sf::Color::Yellow);
+        drawCentered(window, bold, message, WINDOW_WIDTH / 2.f, 250.f, 28, ACTIVE_COLOR);
+        drawCentered(window, font, "(R = main lagi, ESC = menu)", WINDOW_WIDTH / 2.f, 290.f, 16, INACTIVE_COLOR);
     }
     else {
-        drawText(window, font, message, sf::Vector2f(380.f, 540.f), 16, sf::Color::White);
+        drawText(window, font, message, sf::Vector2f(470.f, 560.f), 16, sf::Color::White);
     }
 }
