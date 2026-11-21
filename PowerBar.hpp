@@ -1,19 +1,20 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "GameConfig.hpp"
 
 class PowerBar {
-private:
-    sf::RectangleShape background;
-    sf::RectangleShape fill;
-    float maxPower;
-    float currentPower;
-
 public:
-    PowerBar(float x, float y, float width, float height, float maxPower = 1200.f);
+    PowerBar(sf::Vector2f pos, sf::Vector2f size);
 
-    void setPower(float power);
-    float getPower() const;
-    float getMaxPower() const;
+    void start();
+    void update(float dt);
     void reset();
-    void draw(sf::RenderWindow& window);
+    float getRatio() const;
+    void draw(sf::RenderWindow& window) const;
+
+private:
+    sf::RectangleShape back;
+    sf::RectangleShape fill;
+    float phase;
+    float ratio;
 };

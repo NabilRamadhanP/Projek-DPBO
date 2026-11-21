@@ -1,45 +1,42 @@
 #include "PowerBar.hpp"
-#include <algorithm>
+#include "GameConfig.hpp"
+#include <cmath>
 
-PowerBar::PowerBar(float x, float y, float width, float height, float maxPower)
-    : maxPower(maxPower), currentPower(0.f) {
-    background.setPosition(x, y);
-    background.setSize(sf::Vector2f(width, height));
-    background.setFillColor(sf::Color(40, 40, 40));
-    background.setOutlineThickness(2.f);
-    background.setOutlineColor(sf::Color::White);
+PowerBar::PowerBar(sf::Vector2f pos, sf::Vector2f size) : phase(0.f), ratio(0.f) {
+    back.setPosition(pos);
+    back.setSize(size);
+    back.setFillColor(sf::Color(40, 40, 40));
+    back.setOutlineThickness(2.f);
+    back.setOutlineColor(sf::Color::White);
 
-    fill.setPosition(x, y);
-    fill.setSize(sf::Vector2f(0.f, height));
-    fill.setFillColor(sf::Color::Green);
+    fill.setPosition(pos);
+    fill.setSize(sf::Vector2f(0.f, size.y));
 }
 
-void PowerBar::setPower(float power) {
-    currentPower = std::clamp(power, 0.f, maxPower);
-    float ratio = currentPower / maxPower;
-    fill.setSize(sf::Vector2f(background.getSize().x * ratio, background.getSize().y));
-
-    // Gradasi warna indikator kekuatan (Hijau -> Kuning -> Merah)
-    if (ratio < 0.5f) {
-        fill.setFillColor(sf::Color::Green);
-    }
-    else if (ratio < 0.8f) {
-        fill.setFillColor(sf::Color::Yellow);
-    }
-    else {
-        fill.setFillColor(sf::Color::Red);
-    }
+void PowerBar::start() {
+    reset();
+    update(0.f);
 }
 
-float PowerBar::getPower() const { return currentPower; }
-float PowerBar::getMaxPower() const { return maxPower; }
+void PowerBar::update(float dt) {
+    phase = std::fmod(phase + dt * POWER_SPEED, 2.f);
+    ratio = phase <= 1.f ? phase : 2.f - phase;
+
+    fill.setSize(sf::Vector2f(back.getSize().x * ratio, back.getSize().y));
+    if (ratio < 0.5f) fill.setFillColor(sf::Color::Green);
+    else if (ratio < 0.8f) fill.setFillColor(sf::Color::Yellow);
+    else fill.setFillColor(sf::Color::Red);
+}
 
 void PowerBar::reset() {
-    currentPower = 0.f;
-    fill.setSize(sf::Vector2f(0.f, background.getSize().y));
+    phase = 0.f;
+    ratio = 0.f;
+    fill.setSize(sf::Vector2f(0.f, back.getSize().y));
 }
 
-void PowerBar::draw(sf::RenderWindow& window) {
-    window.draw(background);
+float PowerBar::getRatio() const { return ratio; }
+
+void PowerBar::draw(sf::RenderWindow& window) const {
+    window.draw(back);
     window.draw(fill);
 }

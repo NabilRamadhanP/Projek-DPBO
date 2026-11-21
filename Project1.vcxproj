@@ -111,13 +111,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\SFML-2.6.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\KULYEAH\Semester_3\Desain dan Pemrograman Berorientasi Objek\SFML\SFML-2.6.2-windows-vc17-64-bit\SFML-2.6.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\SFML-2.6.2\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\KULYEAH\Semester_3\Desain dan Pemrograman Berorientasi Objek\SFML\SFML-2.6.2-windows-vc17-64-bit\SFML-2.6.2\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;sfml-audio-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -149,16 +149,31 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BilliardBall.cpp" />
+    <ClCompile Include="AssetManager.cpp" />
+    <ClCompile Include="Ball.cpp" />
     <ClCompile Include="CueStick.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MenuScene.cpp" />
     <ClCompile Include="PowerBar.cpp" />
+    <ClCompile Include="RackAnimation.cpp" />
+    <ClCompile Include="Table.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BilliardBall.hpp" />
+    <ClInclude Include="AssetManager.hpp" />
+    <ClInclude Include="Ball.hpp" />
+    <ClInclude Include="Button.hpp" />
     <ClInclude Include="CueStick.hpp" />
+    <ClInclude Include="Game.hpp" />
     <ClInclude Include="GameConfig.hpp" />
+    <ClInclude Include="GameScene.hpp" />
+    <ClInclude Include="MenuScene.hpp" />
+    <ClInclude Include="Player.hpp" />
     <ClInclude Include="PowerBar.hpp" />
+    <ClInclude Include="RackAnimation.hpp" />
+    <ClInclude Include="Scene.hpp" />
+    <ClInclude Include="Table.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
