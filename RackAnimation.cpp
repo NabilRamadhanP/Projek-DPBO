@@ -1,5 +1,4 @@
 #include "RackAnimation.hpp"
-#include "GameConfig.hpp"
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -35,7 +34,7 @@ void RackAnimation::start(const std::vector<Ball*>& balls, const std::vector<sf:
     float h = maxY - minY + 4.f * BALL_RADIUS;
     triangle.setOrigin(size.x / 2.f, size.y / 2.f);
     triangle.setPosition((minX + maxX) / 2.f, (minY + maxY) / 2.f);
-    triangle.setScale(w / size.x, h / size.y);
+    triangle.setScale(-w / size.x, h / size.y);
 }
 
 void RackAnimation::update(float dt) {
